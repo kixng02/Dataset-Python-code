@@ -291,7 +291,7 @@ def create_visualizations(results, ratings, plant_names, model_names):
 
 def main():
     # Main title and description
-    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Indigenous Plant Classification")
+    st.title(" Fleiss Kappa Analysis: AI Model Agreement on Indigenous Plant Classification")
     st.markdown("""
     This application analyzes the inter-rater agreement between AI models (ChatGPT, Gemini, Mistral AI) 
     on classifying South African indigenous plants using Fleiss' Kappa statistic.
