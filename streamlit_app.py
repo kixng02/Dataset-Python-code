@@ -389,7 +389,7 @@ def get_existing_plant_names():
 
 def user_data_input():
     """Allow users to input their own plant classification data"""
-    st.header("🌿 Enter Your Plant Classification Data")
+    st.header("Enter Your Plant Classification Data")
     
     st.markdown("""
     **Instructions:**
@@ -490,7 +490,7 @@ def user_data_input():
             st.warning(f"⚠️ You have {len(st.session_state.user_plants)} plants. Need at least 5 for analysis.")
             return False
     else:
-        st.info("👆 Start by adding your first plant using the form above.")
+        st.info(" Start by adding your first plant using the form above.")
         return False
 
 def prepare_user_data():
@@ -513,7 +513,7 @@ def prepare_user_data():
 
 def main():
     # Main title and description
-    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
+    st.title("Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
     st.markdown("""
     This application analyzes the inter-rater agreement between AI models (ChatGPT, Gemini, Mistral AI) 
     on classifying plants using Fleiss' Kappa statistic.
@@ -558,7 +558,7 @@ def main():
                 
                 if results:
                     # Display results
-                    st.header("📊 Analysis Results")
+                    st.header(" Analysis Results")
                     
                     # Key metrics in columns
                     col1, col2, col3, col4 = st.columns(4)
