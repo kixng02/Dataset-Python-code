@@ -354,7 +354,7 @@ def create_visualizations(results, ratings, plant_names, model_names):
     
     try:
         # Results bar chart
-        st.subheader("📊 Results Visualization")
+        st.subheader(" Results Visualization")
         results_chart = create_results_chart(results)
         if results_chart:
             st.pyplot(results_chart)
@@ -490,7 +490,7 @@ def user_data_input():
             st.warning(f"⚠️ You have {len(st.session_state.user_plants)} plants. Need at least 5 for analysis.")
             return False
     else:
-        st.info("👆 Start by adding your first plant using the form above.")
+        st.info("Start by adding your first plant using the form above.")
         return False
 
 def prepare_user_data():
@@ -600,7 +600,7 @@ def run_study_data_analysis(analyzer):
 
 def main():
     # Main title and description
-    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
+    st.title("Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
     st.markdown("""
     This application analyzes the inter-rater agreement between AI models (ChatGPT, Gemini, Mistral AI) 
     on classifying plants using Fleiss' Kappa statistic.
@@ -660,7 +660,7 @@ def main():
                 
                 if results:
                     # Display results
-                    st.header("📊 Your Analysis Results")
+                    st.header(" Your Analysis Results")
                     
                     # Key metrics in columns
                     col1, col2, col3, col4 = st.columns(4)
