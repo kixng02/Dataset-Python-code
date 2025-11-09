@@ -230,7 +230,7 @@ def create_agreement_heatmap(ratings, plant_names, model_names):
                xticklabels=model_names,
                yticklabels=plant_names,
                cmap=['red', 'green'],
-               cbar_kws={'label': 'Agreement (Red=Disagree, Green=Agree)'},
+               cbar_kws={'label': 'Key (Red=Disagree, Green=Agree)'},
                ax=ax)
     
     ax.set_title('Inter-Model Agreement Patterns on Indigenous Plant Classification')
