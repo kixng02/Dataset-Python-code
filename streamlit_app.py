@@ -367,7 +367,7 @@ def create_visualizations(results, ratings, plant_names, model_names):
             st.caption("Green indicates all models agree, red indicates disagreement or inconsistent classifications")
         
         # Detailed classification heatmap
-        st.subheader("🎨 Detailed Classification Heatmap")
+        st.subheader("Detailed Classification Heatmap")
         detailed_fig, detailed_df = create_detailed_classification_heatmap(ratings, plant_names, model_names)
         if detailed_fig:
             st.pyplot(detailed_fig)
@@ -546,7 +546,7 @@ def run_study_data_analysis(analyzer):
         
         if results:
             # Display results
-            st.header("📈 Research Study Results")
+            st.header(" Research Study Results")
             
             # Key metrics in columns
             col1, col2, col3, col4 = st.columns(4)
@@ -570,7 +570,7 @@ def run_study_data_analysis(analyzer):
             create_visualizations(results, ratings, plant_names, model_names)
             
             # Additional statistics
-            st.subheader("📈 Additional Statistics")
+            st.subheader("Additional Statistics")
             total_agreements = 0
             for plant_ratings in ratings:
                 valid_ratings = [r for r in plant_ratings if r != -1]
@@ -647,7 +647,7 @@ def main():
         ready_for_analysis = user_data_input()
         
         if ready_for_analysis:
-            st.header("📈 Analyze Your Data")
+            st.header("Analyze Your Data")
             
             if st.button("Run Fleiss Kappa Analysis with Your Data", type="primary"):
                 with st.spinner("Calculating Fleiss' Kappa..."):
