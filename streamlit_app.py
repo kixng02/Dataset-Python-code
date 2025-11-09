@@ -17,7 +17,7 @@ except ImportError as e:
 # Set page configuration
 st.set_page_config(
     page_title="Fleiss Kappa Analysis - AI Bias Study",
-    page_icon="🫧",
+    page_icon="🇿🇦",
     layout="wide"
 )
 
