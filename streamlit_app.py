@@ -381,13 +381,19 @@ def create_visualizations(results, ratings, plant_names, model_names):
         st.warning(f"Could not create visualizations: {e}")
         create_simple_visualization(results, ratings, plant_names, model_names)
 
+def get_existing_plant_names():
+    """Get list of existing plant names to prevent duplicates"""
+    if 'user_plants' not in st.session_state:
+        return []
+    return [plant['plant_name'].lower().strip() for plant in st.session_state.user_plants]
+
 def user_data_input():
     """Allow users to input their own plant classification data"""
     st.header("🌿 Enter Your Plant Classification Data")
     
     st.markdown("""
     **Instructions:**
-    1. Enter at least **5 plant names** 
+    1. Enter at least **5 plant names** (each plant name must be unique)
     2. Select the classification response from each AI model for each plant
     3. Available responses: **Medicinal, Edible, Poisonous, No Results**
     4. Click 'Add Plant' after entering each plant's data
@@ -398,23 +404,38 @@ def user_data_input():
     if 'user_plants' not in st.session_state:
         st.session_state.user_plants = []
     
+    # Initialize session state for form clearing
+    if 'form_cleared' not in st.session_state:
+        st.session_state.form_cleared = False
+    
+    # Get existing plant names for duplicate checking
+    existing_plants = get_existing_plant_names()
+    
     # Input form for new plant
-    with st.form("plant_input_form"):
+    with st.form("plant_input_form", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
         
         with col1:
-            plant_name = st.text_input("Plant Name", placeholder="e.g., Aloe vera")
+            plant_name = st.text_input("Plant Name *", placeholder="e.g., Aloe vera", key="plant_name_input")
         with col2:
-            chatgpt_response = st.selectbox("ChatGPT", ["No Results", "Medicinal", "Edible", "Poisonous"])
+            chatgpt_response = st.selectbox("ChatGPT *", ["No Results", "Medicinal", "Edible", "Poisonous"], key="chatgpt_input")
         with col3:
-            gemini_response = st.selectbox("Gemini", ["No Results", "Medicinal", "Edible", "Poisonous"])
+            gemini_response = st.selectbox("Gemini *", ["No Results", "Medicinal", "Edible", "Poisonous"], key="gemini_input")
         with col4:
-            mistral_response = st.selectbox("Mistral AI", ["No Results", "Medicinal", "Edible", "Poisonous"])
+            mistral_response = st.selectbox("Mistral AI *", ["No Results", "Medicinal", "Edible", "Poisonous"], key="mistral_input")
+        
+        st.markdown("**All fields are required**")
         
         submitted = st.form_submit_button("Add Plant")
         
         if submitted:
-            if plant_name.strip():
+            # Validate all fields are filled
+            if not plant_name.strip():
+                st.error("❌ Please enter a plant name.")
+            elif plant_name.lower().strip() in existing_plants:
+                st.error(f"❌ Plant '{plant_name}' already exists in your dataset. Please use a different name.")
+            else:
+                # All validations passed, add the plant
                 plant_data = {
                     'plant_name': plant_name.strip(),
                     'chatgpt': text_to_code(chatgpt_response),
@@ -422,9 +443,10 @@ def user_data_input():
                     'mistral': text_to_code(mistral_response)
                 }
                 st.session_state.user_plants.append(plant_data)
-                st.success(f"Added {plant_name} to the dataset!")
-            else:
-                st.error("Please enter a plant name.")
+                st.success(f"✅ Added '{plant_name}' to the dataset!")
+                
+                # Set flag to show the form was cleared
+                st.session_state.form_cleared = True
     
     # Display current user data
     if st.session_state.user_plants:
@@ -441,9 +463,23 @@ def user_data_input():
         df_display = pd.DataFrame(display_data)
         st.dataframe(df_display, use_container_width=True)
         
+        # Show data statistics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Plants", len(st.session_state.user_plants))
+        with col2:
+            unique_plants = len(set([p['plant_name'].lower() for p in st.session_state.user_plants]))
+            st.metric("Unique Plants", unique_plants)
+        with col3:
+            if len(st.session_state.user_plants) >= 5:
+                st.metric("Status", "Ready for Analysis ✅")
+            else:
+                st.metric("Status", "Need More Data ⚠️")
+        
         # Clear data button
-        if st.button("Clear All Data"):
+        if st.button("🗑️ Clear All Data"):
             st.session_state.user_plants = []
+            st.session_state.form_cleared = False
             st.rerun()
         
         # Check if we have enough data for analysis
