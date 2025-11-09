@@ -187,134 +187,102 @@ def prepare_actual_classification_data():
     
     return actual_classifications, plant_names
 
-def create_detailed_heatmap_from_table1():
-    """Create a comprehensive heatmap showing all data from Table 1"""
+def create_agreement_heatmap(ratings, plant_names, model_names):
+    """Create a heatmap visualization of agreement patterns"""
     if not VISUALIZATION_AVAILABLE:
         return None
+        
+    fig, ax = plt.subplots(figsize=(12, 8))
     
-    try:
-        # Create the complete dataset from Table 1
-        plant_data = [
-            # Plant Name, Local Name, ChatGPT, Gemini, Mistral AI, Consensus Classification
-            ["Aloe ferox", "inlaba (isiZulu)", "Medicinal", "Medicinal", "Edible", "Medicinal"],
-            ["African ginger", "Wildegemmer (Afrikaans)", "Medicinal", "Medicinal", "Medicinal", "Medicinal"],
-            ["Wild rosemary", "Pokbos (Afrikaans)", "No results", "No results", "No results", "Medicinal"],
-            ["Devil's claw", "Sengaparile (Setswana)", "Medicinal", "Medicinal", "Medicinal", "Medicinal"],
-            ["African wormwood", "umhlonyane (isiXhosa)", "Medicinal", "Medicinal", "Medicinal", "Medicinal"],
-            ["Pepperbark tree", "mulanga (Tshivenda)", "Not accurate", "Not accurate", "Not accurate", "Medicinal"],
-            ["Pineapple flower", "umathunga (isiZulu)", "Medicinal", "Medicinal", "Medicinal", "Medicinal"],
-            ["Spekboom", "igwanitsha (isiXhosa)", "Not accurate", "Not accurate", "Not accurate", "Medicinal"],
-            ["False horsewood", "Isiphahluka (isiZulu)", "Medicinal, Poisonous", "No results", "Not accurate", "Medicinal"],
-            ["Sand raisin", "mufuka (Tshivenda)", "No results", "Not accurate", "Edible, Medicinal", "Edible, Medicinal"],
-            ["Mountain nettle", "lebati (Northern Sotho)", "Not accurate", "Not accurate", "Not accurate", "Edible"],
-            ["Acacia", "Soetdoring (Afrikaans)", "Medicinal, Poisonous", "Poisonous", "Poisonous", "Medicinal, Poisonous"],
-            ["River karee", "Umhlakaza (isiZulu)", "Medicinal", "Umhlakaza (isiZulu)", "Not accurate", "Medicinal"],
-            ["Kudu lily", "ligubaguba (siSwati)", "Medicinal", "Not accurate", "Medicinal", "Medicinal"],
-            ["Waterberg raisin", "mulembu (Tshivenda)", "Not accurate", "Not accurate", "Not accurate", "Edible, Medicinal"],
-            ["Sweet wild garlic", "iswele lezinyoka (isiZulu)", "No results", "No results", "Not accurate", "Poisonous"],
-            ["Cyrtanthus sanguineus", "isilawu esimhlophe (isiXhosa)", "Not accurate", "Not accurate", "Edible", "Edible, Medicinal"],
-            ["Ruttya fruticosa", "Jembekkie (Afrikaans)", "No results", "Medicinal", "Not accurate", "Medicinal"],
-            ["Sesamum trilobum", "udonqa (SiSwati)", "No results", "No results", "Edible", "Edible"],
-            ["Aloe hahnii", "tshikhopha-tshituku (Tshivenda)", "No results", "Medicinal", "Not accurate", "Medicinal"]
-        ]
-        
-        # Create DataFrame
-        columns = ["Plant Name", "Local Name", "ChatGPT", "Gemini", "Mistral AI", "Consensus"]
-        df = pd.DataFrame(plant_data, columns=columns)
-        
-        # Create the visualization
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 14))
-        
-        # First heatmap: Model classifications with color coding
-        st.subheader("📋 Detailed Classification Heatmap from Table 1")
-        
-        # Prepare data for heatmap - convert text to numerical codes
-        classification_map = {
-            'Medicinal': 0,
-            'Edible': 1, 
-            'Poisonous': 2,
-            'No results': 3,
-            'Not accurate': 4,
-            'Medicinal, Poisonous': 5,
-            'Edible, Medicinal': 6,
-            'Umhlakaza (isiZulu)': 7  # Special case
-        }
-        
-        # Extract model data for heatmap
-        model_data = df[['ChatGPT', 'Gemini', 'Mistral AI']].copy()
-        heatmap_data = model_data.applymap(lambda x: classification_map.get(x, 8))
-        
-        # Create custom colormap
-        colors = ['#2E8B57', '#FFD700', '#DC143C', '#696969', '#FF8C00', '#8A2BE2', '#00CED1', '#FF69B4', '#F0F0F0']
-        cmap = ListedColormap(colors)
-        
-        # Plot main heatmap
-        im = ax1.imshow(heatmap_data.values, cmap=cmap, aspect='auto')
-        
-        # Customize the heatmap
-        ax1.set_xticks(range(len(model_data.columns)))
-        ax1.set_xticklabels(model_data.columns, rotation=45, ha='right')
-        ax1.set_yticks(range(len(df)))
-        ax1.set_yticklabels(df['Plant Name'])
-        ax1.set_title('Detailed AI Model Classifications from Table 1\n(Complete Research Data)', fontsize=14, fontweight='bold', pad=20)
-        
-        # Add value annotations
-        for i in range(len(df)):
-            for j in range(len(model_data.columns)):
-                text = model_data.iloc[i, j]
-                ax1.text(j, i, text, ha='center', va='center', fontsize=9, 
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.7))
-        
-        # Add colorbar with labels
-        cbar = plt.colorbar(im, ax=ax1, orientation='horizontal', pad=0.1)
-        cbar.set_ticks([0, 1, 2, 3, 4, 5, 6, 7])
-        cbar.set_ticklabels(['Medicinal', 'Edible', 'Poisonous', 'No Results', 
-                           'Not Accurate', 'Medicinal/Poisonous', 'Edible/Medicinal', 'Language Issue'])
-        
-        # Second subplot: Consensus analysis
-        consensus_colors = []
-        consensus_labels = []
-        
-        for i, row in df.iterrows():
-            models = [row['ChatGPT'], row['Gemini'], row['Mistral AI']]
-            valid_models = [m for m in models if m not in ['No results', 'Not accurate', 'Umhlakaza (isiZulu)']]
-            
-            if len(valid_models) == 0:
-                consensus_colors.append(0)  # Gray - no valid data
-                consensus_labels.append("No Valid Data")
-            elif len(set(valid_models)) == 1:
-                consensus_colors.append(1)  # Green - full agreement
-                consensus_labels.append("Full Consensus")
-            else:
-                consensus_colors.append(2)  # Red - disagreement
-                consensus_labels.append("Disagreement")
-        
-        # Plot consensus analysis
-        consensus_cmap = ListedColormap(['#696969', '#2E8B57', '#DC143C'])
-        im2 = ax2.imshow([consensus_colors], cmap=consensus_cmap, aspect='auto', extent=[0, len(df), 0, 1])
-        
-        ax2.set_xlabel('Plant Index')
-        ax2.set_yticks([])
-        ax2.set_title('Inter-Model Consensus Analysis', fontsize=12, fontweight='bold')
-        
-        # Add consensus labels
-        for i, label in enumerate(consensus_labels):
-            color = 'white' if consensus_colors[i] != 0 else 'black'
-            ax2.text(i + 0.5, 0.5, label, ha='center', va='center', 
-                    color=color, fontweight='bold', fontsize=8)
-        
-        # Add colorbar for consensus
-        cbar2 = plt.colorbar(im2, ax=ax2, orientation='horizontal', pad=0.05)
-        cbar2.set_ticks([0.33, 1.0, 1.67])
-        cbar2.set_ticklabels(['No Valid Data', 'Full Consensus', 'Disagreement'])
-        
-        plt.tight_layout()
-        
-        return fig, df
-        
-    except Exception as e:
-        st.error(f"Error creating detailed heatmap: {str(e)}")
+    # Convert to agreement matrix (1 = all agree, 0 = disagree)
+    agreement_matrix = np.zeros(len(ratings))
+    
+    for i in range(len(ratings)):
+        valid_ratings = [r for r in ratings[i] if r != -1]
+        if len(valid_ratings) > 0:
+            agreement_matrix[i] = len(set(valid_ratings)) == 1
+        else:
+            agreement_matrix[i] = 0
+    
+    agreement_display = np.tile(agreement_matrix, (3, 1)).T
+    
+    sns.heatmap(agreement_display, 
+               xticklabels=model_names,
+               yticklabels=plant_names,
+               cmap=['red', 'green'],
+               cbar_kws={'label': 'Agreement (Red=Disagree, Green=Agree)'},
+               ax=ax)
+    
+    ax.set_title('Inter-Model Agreement Patterns on Indigenous Plant Classification')
+    ax.set_xlabel('AI Models')
+    ax.set_ylabel('Indigenous Plants')
+    
+    return fig
+
+def create_detailed_classification_heatmap(ratings, plant_names, model_names):
+    """Create a detailed heatmap showing actual classifications"""
+    if not VISUALIZATION_AVAILABLE:
         return None, None
+        
+    # Convert numerical ratings to descriptive labels for visualization
+    label_map = {0: 'Medicinal', 1: 'Edible', 2: 'Poisonous', -1: 'No Results'}
+    
+    rating_labels = []
+    for plant_ratings in ratings:
+        labels = [label_map[r] for r in plant_ratings]
+        rating_labels.append(labels)
+    
+    rating_df = pd.DataFrame(rating_labels, 
+                           index=plant_names, 
+                           columns=model_names)
+    
+    fig, ax = plt.subplots(figsize=(14, 10))
+    
+    # Create custom colormap
+    from matplotlib.colors import ListedColormap
+    cmap = ListedColormap(['#2E8B57', '#FFD700', '#DC143C', '#696969'])
+    
+    heatmap_data = rating_df.apply(lambda x: pd.Categorical(x).codes)
+    sns.heatmap(heatmap_data, 
+               cmap=cmap,
+               xticklabels=model_names,
+               yticklabels=plant_names,
+               cbar_kws={'ticks': [0, 1, 2, 3], 
+                       'label': 'Classification'},
+               ax=ax)
+    
+    # Customize colorbar labels
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticklabels(['Medicinal', 'Edible', 'Poisonous', 'No Results'])
+    
+    ax.set_title('Detailed AI Model Classifications of Indigenous Plants\n(Actual Data from Table 1)')
+    ax.set_xlabel('AI Models')
+    ax.set_ylabel('Indigenous Plants')
+    
+    return fig, rating_df
+
+def create_results_chart(results):
+    """Create a bar chart of key results"""
+    if not VISUALIZATION_AVAILABLE:
+        return None
+        
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    metrics = ['Kappa', 'Observed Agreement', 'Expected Agreement']
+    values = [results['kappa'], results['observed_agreement'], results['expected_agreement']]
+    colors = ['lightblue', 'lightgreen', 'lightcoral']
+    
+    bars = ax.bar(metrics, values, color=colors, alpha=0.7)
+    ax.set_ylabel('Score')
+    ax.set_title('Fleiss Kappa Analysis Results')
+    ax.grid(True, alpha=0.3)
+    
+    for bar, value in zip(bars, values):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+               f'{value:.3f}', ha='center', va='bottom')
+    
+    return fig
 
 def create_simple_visualization(results, ratings, plant_names, model_names):
     """Create simple text-based visualizations when matplotlib is not available"""
@@ -361,58 +329,36 @@ def create_simple_visualization(results, ratings, plant_names, model_names):
             st.write(detail)
 
 def create_visualizations(results, ratings, plant_names, model_names):
-    """Create visualizations if libraries are available"""
+    """Create all visualizations including detailed heatmaps"""
+    
     if not VISUALIZATION_AVAILABLE:
         create_simple_visualization(results, ratings, plant_names, model_names)
         return
     
     try:
         # Results bar chart
-        st.subheader("Results Visualization")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        metrics = ['Kappa', 'Observed Agreement', 'Expected Agreement']
-        values = [results['kappa'], results['observed_agreement'], results['expected_agreement']]
-        colors = ['lightblue', 'lightgreen', 'lightcoral']
-        
-        bars = ax.bar(metrics, values, color=colors, alpha=0.7)
-        ax.set_ylabel('Score')
-        ax.set_title('Fleiss Kappa Analysis Results')
-        ax.grid(True, alpha=0.3)
-        
-        for bar, value in zip(bars, values):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                   f'{value:.3f}', ha='center', va='bottom')
-        
-        st.pyplot(fig)
+        st.subheader("📊 Results Visualization")
+        results_chart = create_results_chart(results)
+        if results_chart:
+            st.pyplot(results_chart)
         
         # Agreement heatmap
-        st.subheader("Agreement Patterns")
-        fig2, ax2 = plt.subplots(figsize=(12, 8))
+        st.subheader("🔄 Agreement Patterns")
+        agreement_fig = create_agreement_heatmap(ratings, plant_names, model_names)
+        if agreement_fig:
+            st.pyplot(agreement_fig)
+            st.caption("Green indicates all models agree, red indicates disagreement or inconsistent classifications")
         
-        agreement_matrix = np.zeros(len(ratings))
-        for i in range(len(ratings)):
-            valid_ratings = [r for r in ratings[i] if r != -1]
-            if len(valid_ratings) > 0:
-                agreement_matrix[i] = len(set(valid_ratings)) == 1
-            else:
-                agreement_matrix[i] = 0
-        
-        agreement_display = np.tile(agreement_matrix, (3, 1)).T
-        
-        sns.heatmap(agreement_display, 
-                   xticklabels=model_names,
-                   yticklabels=plant_names,
-                   cmap=['red', 'green'],
-                   cbar_kws={'label': 'Agreement (Red=Disagree, Green=Agree)'},
-                   ax=ax2)
-        
-        ax2.set_title('Inter-Model Agreement Patterns')
-        ax2.set_xlabel('AI Models')
-        ax2.set_ylabel('Indigenous Plants')
-        
-        st.pyplot(fig2)
+        # Detailed classification heatmap
+        st.subheader("🎨 Detailed Classification Heatmap")
+        detailed_fig, detailed_df = create_detailed_classification_heatmap(ratings, plant_names, model_names)
+        if detailed_fig:
+            st.pyplot(detailed_fig)
+            st.caption("Complete classification data showing each AI model's response for every indigenous plant")
+            
+            # Show the data table
+            with st.expander("View Raw Classification Data"):
+                st.dataframe(detailed_df)
         
     except Exception as e:
         st.warning(f"Could not create visualizations: {e}")
@@ -444,7 +390,7 @@ def main():
     st.sidebar.title("Navigation")
     app_mode = st.sidebar.selectbox(
         "Choose Analysis Mode",
-        ["Study Data Analysis", "Detailed Table 1 Heatmap", "Upload Custom Data", "About"]
+        ["Study Data Analysis", "Upload Custom Data", "About"]
     )
     
     if app_mode == "Study Data Analysis":
@@ -496,11 +442,11 @@ def main():
                 # Interpretation
                 st.info(f"**Interpretation**: {results['interpretation']}")
                 
-                # Create visualizations
+                # Create visualizations (including detailed heatmap)
                 create_visualizations(results, ratings, plant_names, model_names)
                 
                 # Additional statistics
-                st.subheader("Additional Statistics")
+                st.subheader("📊 Additional Statistics")
                 total_agreements = 0
                 for plant_ratings in ratings:
                     valid_ratings = [r for r in plant_ratings if r != -1]
@@ -519,7 +465,7 @@ def main():
                              "Yes" if results['p_value'] < 0.05 else "No")
                 
                 # Export results
-                st.subheader("Export Results")
+                st.subheader("💾 Export Results")
                 
                 # Create downloadable data
                 export_data = []
@@ -543,56 +489,13 @@ def main():
                 )
                 
                 # Research implications
-                st.subheader("Research Implications")
+                st.subheader("🔬 Research Implications")
                 st.markdown("""
                 - **Low Kappa Values** indicate significant disagreement among AI models
                 - **Inconsistent classifications** highlight bias in training data
                 - **No Results patterns** show gaps in indigenous knowledge representation
                 - **Findings support** the need for integrating Indigenous Knowledge Systems into AI training
                 """)
-    
-    elif app_mode == "Detailed Table 1 Heatmap":
-        st.header("🎨 Detailed Table 1 Heatmap Visualization")
-        st.markdown("""
-        This visualization shows the complete data from **Table 1** of the research study, 
-        displaying all AI model classifications for each indigenous plant with local names.
-        """)
-        
-        if VISUALIZATION_AVAILABLE:
-            fig, df = create_detailed_heatmap_from_table1()
-            if fig is not None:
-                st.pyplot(fig)
-                
-                # Show the raw data table
-                st.subheader("📊 Complete Table 1 Data")
-                st.dataframe(df, use_container_width=True)
-                
-                # Add insights
-                st.subheader("🔍 Key Insights from Table 1")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("""
-                    **Patterns of Bias:**
-                    - 🟢 **Green**: Consistent classifications across models
-                    - 🔴 **Red**: Conflicting or contradictory classifications  
-                    - 🟠 **Orange**: 'Not accurate' responses showing knowledge gaps
-                    - ⚫ **Gray**: 'No results' indicating complete data absence
-                    """)
-                
-                with col2:
-                    st.markdown("""
-                    **Research Implications:**
-                    - Mixed classifications reveal **algorithmic uncertainty**
-                    - Language-specific failures show **cultural bias**
-                    - Inconsistent results demonstrate **training data limitations**
-                    - Patterns support **IKS integration** necessity
-                    """)
-            else:
-                st.error("Could not generate the detailed heatmap.")
-        else:
-            st.error("Visualization libraries are required for this feature. Please install matplotlib and seaborn.")
     
     elif app_mode == "Upload Custom Data":
         st.header("📤 Upload Custom Data")
