@@ -187,6 +187,26 @@ def prepare_actual_classification_data():
     
     return actual_classifications, plant_names
 
+def text_to_code(text_response):
+    """Convert text responses to numerical codes"""
+    response_map = {
+        'Medicinal': 0,
+        'Edible': 1,
+        'Poisonous': 2,
+        'No Results': -1
+    }
+    return response_map.get(text_response, -1)
+
+def code_to_text(code):
+    """Convert numerical codes back to text"""
+    code_map = {
+        0: 'Medicinal',
+        1: 'Edible',
+        2: 'Poisonous',
+        -1: 'No Results'
+    }
+    return code_map.get(code, 'No Results')
+
 def create_agreement_heatmap(ratings, plant_names, model_names):
     """Create a heatmap visualization of agreement patterns"""
     if not VISUALIZATION_AVAILABLE:
@@ -225,11 +245,9 @@ def create_detailed_classification_heatmap(ratings, plant_names, model_names):
         return None, None
         
     # Convert numerical ratings to descriptive labels for visualization
-    label_map = {0: 'Medicinal', 1: 'Edible', 2: 'Poisonous', -1: 'No Results'}
-    
     rating_labels = []
     for plant_ratings in ratings:
-        labels = [label_map[r] for r in plant_ratings]
+        labels = [code_to_text(r) for r in plant_ratings]
         rating_labels.append(labels)
     
     rating_df = pd.DataFrame(rating_labels, 
@@ -239,7 +257,6 @@ def create_detailed_classification_heatmap(ratings, plant_names, model_names):
     fig, ax = plt.subplots(figsize=(14, 10))
     
     # Create custom colormap
-    from matplotlib.colors import ListedColormap
     cmap = ListedColormap(['#2E8B57', '#FFD700', '#DC143C', '#696969'])
     
     heatmap_data = rating_df.apply(lambda x: pd.Categorical(x).codes)
@@ -255,7 +272,7 @@ def create_detailed_classification_heatmap(ratings, plant_names, model_names):
     cbar = ax.collections[0].colorbar
     cbar.set_ticklabels(['Medicinal', 'Edible', 'Poisonous', 'No Results'])
     
-    ax.set_title('Detailed AI Model Classifications of Indigenous Plants\n(Actual Data from Table 1)')
+    ax.set_title('Detailed AI Model Classifications\n(User-Provided Data)')
     ax.set_xlabel('AI Models')
     ax.set_ylabel('Indigenous Plants')
     
@@ -354,7 +371,7 @@ def create_visualizations(results, ratings, plant_names, model_names):
         detailed_fig, detailed_df = create_detailed_classification_heatmap(ratings, plant_names, model_names)
         if detailed_fig:
             st.pyplot(detailed_fig)
-            st.caption("Complete classification data showing each AI model's response for every indigenous plant")
+            st.caption("Complete classification data showing each AI model's response for every plant")
             
             # Show the data table
             with st.expander("View Raw Classification Data"):
@@ -364,12 +381,106 @@ def create_visualizations(results, ratings, plant_names, model_names):
         st.warning(f"Could not create visualizations: {e}")
         create_simple_visualization(results, ratings, plant_names, model_names)
 
+def user_data_input():
+    """Allow users to input their own plant classification data"""
+    st.header("🌿 Enter Your Plant Classification Data")
+    
+    st.markdown("""
+    **Instructions:**
+    1. Enter at least **5 plant names** 
+    2. Select the classification response from each AI model for each plant
+    3. Available responses: **Medicinal, Edible, Poisonous, No Results**
+    4. Click 'Add Plant' after entering each plant's data
+    5. Click 'Run Analysis with User Data' when you have at least 5 plants
+    """)
+    
+    # Initialize session state for user data
+    if 'user_plants' not in st.session_state:
+        st.session_state.user_plants = []
+    
+    # Input form for new plant
+    with st.form("plant_input_form"):
+        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+        
+        with col1:
+            plant_name = st.text_input("Plant Name", placeholder="e.g., Aloe vera")
+        with col2:
+            chatgpt_response = st.selectbox("ChatGPT", ["No Results", "Medicinal", "Edible", "Poisonous"])
+        with col3:
+            gemini_response = st.selectbox("Gemini", ["No Results", "Medicinal", "Edible", "Poisonous"])
+        with col4:
+            mistral_response = st.selectbox("Mistral AI", ["No Results", "Medicinal", "Edible", "Poisonous"])
+        
+        submitted = st.form_submit_button("Add Plant")
+        
+        if submitted:
+            if plant_name.strip():
+                plant_data = {
+                    'plant_name': plant_name.strip(),
+                    'chatgpt': text_to_code(chatgpt_response),
+                    'gemini': text_to_code(gemini_response),
+                    'mistral': text_to_code(mistral_response)
+                }
+                st.session_state.user_plants.append(plant_data)
+                st.success(f"Added {plant_name} to the dataset!")
+            else:
+                st.error("Please enter a plant name.")
+    
+    # Display current user data
+    if st.session_state.user_plants:
+        st.subheader("📋 Your Current Plant Data")
+        display_data = []
+        for plant in st.session_state.user_plants:
+            display_data.append({
+                'Plant Name': plant['plant_name'],
+                'ChatGPT': code_to_text(plant['chatgpt']),
+                'Gemini': code_to_text(plant['gemini']),
+                'Mistral AI': code_to_text(plant['mistral'])
+            })
+        
+        df_display = pd.DataFrame(display_data)
+        st.dataframe(df_display, use_container_width=True)
+        
+        # Clear data button
+        if st.button("Clear All Data"):
+            st.session_state.user_plants = []
+            st.rerun()
+        
+        # Check if we have enough data for analysis
+        if len(st.session_state.user_plants) >= 5:
+            st.success(f"✅ You have {len(st.session_state.user_plants)} plants. Ready for analysis!")
+            return True
+        else:
+            st.warning(f"⚠️ You have {len(st.session_state.user_plants)} plants. Need at least 5 for analysis.")
+            return False
+    else:
+        st.info("👆 Start by adding your first plant using the form above.")
+        return False
+
+def prepare_user_data():
+    """Convert user data to the format needed for Fleiss Kappa analysis"""
+    if 'user_plants' not in st.session_state:
+        return [], []
+    
+    plant_names = []
+    classifications = []
+    
+    for plant in st.session_state.user_plants:
+        plant_names.append(plant['plant_name'])
+        classifications.append([
+            plant['chatgpt'],
+            plant['gemini'], 
+            plant['mistral']
+        ])
+    
+    return classifications, plant_names
+
 def main():
     # Main title and description
-    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Indigenous Plant Classification")
+    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
     st.markdown("""
     This application analyzes the inter-rater agreement between AI models (ChatGPT, Gemini, Mistral AI) 
-    on classifying South African indigenous plants using Fleiss' Kappa statistic.
+    on classifying plants using Fleiss' Kappa statistic.
     """)
     
     # Installation notice if libraries are missing
@@ -390,10 +501,70 @@ def main():
     st.sidebar.title("Navigation")
     app_mode = st.sidebar.selectbox(
         "Choose Analysis Mode",
-        ["Study Data Analysis", "Upload Custom Data", "About"]
+        ["User Data Input", "Study Data Analysis", "About"]
     )
     
-    if app_mode == "Study Data Analysis":
+    if app_mode == "User Data Input":
+        # User data input and analysis
+        ready_for_analysis = user_data_input()
+        
+        if ready_for_analysis:
+            st.header("📈 Analyze Your Data")
+            
+            if st.button("Run Fleiss Kappa Analysis with User Data", type="primary"):
+                with st.spinner("Calculating Fleiss' Kappa..."):
+                    # Prepare user data
+                    ratings, plant_names = prepare_user_data()
+                    model_names = ["ChatGPT", "Gemini", "Mistral AI"]
+                    
+                    # Run analysis
+                    results = analyzer.calculate_fleiss_kappa(ratings, categories=[-1, 0, 1, 2])
+                
+                if results:
+                    # Display results
+                    st.header("📊 Analysis Results")
+                    
+                    # Key metrics in columns
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Fleiss' Kappa", f"{results['kappa']:.3f}")
+                    
+                    with col2:
+                        st.metric("P-value", f"{results['p_value']:.4f}")
+                    
+                    with col3:
+                        st.metric("Observed Agreement", f"{results['observed_agreement']:.3f}")
+                    
+                    with col4:
+                        st.metric("Expected Agreement", f"{results['expected_agreement']:.3f}")
+                    
+                    # Interpretation
+                    st.info(f"**Interpretation**: {results['interpretation']}")
+                    
+                    # Create visualizations
+                    create_visualizations(results, ratings, plant_names, model_names)
+                    
+                    # Additional statistics
+                    st.subheader("📈 Additional Statistics")
+                    total_agreements = 0
+                    for plant_ratings in ratings:
+                        valid_ratings = [r for r in plant_ratings if r != -1]
+                        if len(valid_ratings) > 0 and len(set(valid_ratings)) == 1:
+                            total_agreements += 1
+                    
+                    agreement_rate = total_agreements / len(ratings)
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Overall Agreement Rate", f"{agreement_rate:.1%}")
+                    with col2:
+                        st.metric("Plants with Consensus", f"{total_agreements}/{len(ratings)}")
+                    with col3:
+                        st.metric("Statistical Significance", 
+                                 "Yes" if results['p_value'] < 0.05 else "No")
+    
+    elif app_mode == "Study Data Analysis":
         st.header("📋 Study Data Analysis")
         st.markdown("Analyzing actual data from the research study (Table 1)")
         
@@ -407,9 +578,9 @@ def main():
         for i, plant in enumerate(plant_names):
             display_data.append({
                 'Plant Name': plant,
-                'ChatGPT': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][0] + 1],
-                'Gemini': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][1] + 1],
-                'Mistral AI': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][2] + 1]
+                'ChatGPT': code_to_text(ratings[i][0]),
+                'Gemini': code_to_text(ratings[i][1]),
+                'Mistral AI': code_to_text(ratings[i][2])
             })
         
         df_display = pd.DataFrame(display_data)
@@ -442,77 +613,8 @@ def main():
                 # Interpretation
                 st.info(f"**Interpretation**: {results['interpretation']}")
                 
-                # Create visualizations (including detailed heatmap)
+                # Create visualizations
                 create_visualizations(results, ratings, plant_names, model_names)
-                
-                # Additional statistics
-                st.subheader("📊 Additional Statistics")
-                total_agreements = 0
-                for plant_ratings in ratings:
-                    valid_ratings = [r for r in plant_ratings if r != -1]
-                    if len(valid_ratings) > 0 and len(set(valid_ratings)) == 1:
-                        total_agreements += 1
-                
-                agreement_rate = total_agreements / len(ratings)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Overall Agreement Rate", f"{agreement_rate:.1%}")
-                with col2:
-                    st.metric("Plants with Consensus", f"{total_agreements}/{len(ratings)}")
-                with col3:
-                    st.metric("Statistical Significance", 
-                             "Yes" if results['p_value'] < 0.05 else "No")
-                
-                # Export results
-                st.subheader("💾 Export Results")
-                
-                # Create downloadable data
-                export_data = []
-                for i, plant in enumerate(plant_names):
-                    export_data.append({
-                        'Plant_Name': plant,
-                        'ChatGPT': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][0] + 1],
-                        'Gemini': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][1] + 1],
-                        'Mistral_AI': ['No Results', 'Medicinal', 'Edible', 'Poisonous'][ratings[i][2] + 1],
-                        'Consensus': 'Yes' if len(set([r for r in ratings[i] if r != -1])) == 1 else 'No'
-                    })
-                
-                df_export = pd.DataFrame(export_data)
-                csv = df_export.to_csv(index=False)
-                
-                st.download_button(
-                    label="Download Results as CSV",
-                    data=csv,
-                    file_name="fleiss_kappa_analysis.csv",
-                    mime="text/csv"
-                )
-                
-                # Research implications
-                st.subheader("🔬 Research Implications")
-                st.markdown("""
-                - **Low Kappa Values** indicate significant disagreement among AI models
-                - **Inconsistent classifications** highlight bias in training data
-                - **No Results patterns** show gaps in indigenous knowledge representation
-                - **Findings support** the need for integrating Indigenous Knowledge Systems into AI training
-                """)
-    
-    elif app_mode == "Upload Custom Data":
-        st.header("📤 Upload Custom Data")
-        st.markdown("Upload your own classification data for analysis")
-        
-        st.info("Custom data upload feature requires additional dependencies. Using study data for demonstration.")
-        
-        # For now, just show the same analysis
-        ratings, plant_names = prepare_actual_classification_data()
-        model_names = ["ChatGPT", "Gemini", "Mistral AI"]
-        
-        if st.button("Analyze with Sample Data"):
-            with st.spinner("Calculating Fleiss' Kappa..."):
-                results = analyzer.calculate_fleiss_kappa(ratings, categories=[-1, 0, 1, 2])
-            
-            if results:
-                st.success(f"Fleiss' Kappa: {results['kappa']:.3f} ({results['interpretation']})")
     
     else:  # About mode
         st.header("ℹ️ About This Analysis")
@@ -523,7 +625,6 @@ def main():
         ### Methodology
         - **Fleiss' Kappa**: Statistical measure for assessing inter-rater agreement
         - **AI Models**: ChatGPT, Google Gemini, Mistral AI
-        - **Data**: 20 indigenous South African plants with local names
         - **Classifications**: Medicinal, Edible, Poisonous, or No Results
         
         ### Interpretation Guide
