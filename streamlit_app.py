@@ -389,7 +389,7 @@ def get_existing_plant_names():
 
 def user_data_input():
     """Allow users to input their own plant classification data"""
-    st.header("Enter Your Plant Classification Data")
+    st.header("🌿 Insert Your Own Data")
     
     st.markdown("""
     **Instructions:**
@@ -490,7 +490,7 @@ def user_data_input():
             st.warning(f"⚠️ You have {len(st.session_state.user_plants)} plants. Need at least 5 for analysis.")
             return False
     else:
-        st.info(" Start by adding your first plant using the form above.")
+        st.info("👆 Start by adding your first plant using the form above.")
         return False
 
 def prepare_user_data():
@@ -511,12 +511,101 @@ def prepare_user_data():
     
     return classifications, plant_names
 
+def run_study_data_analysis(analyzer):
+    """Run and display the study data analysis"""
+    st.header("📋 Research Study Data Analysis")
+    st.markdown("""
+    This analysis uses the original research data from **Table 1** of the study:
+    **"A model for addressing AI algorithms biasness through indigenous South African knowledge systems."**
+    
+    The data shows how three AI models (ChatGPT, Gemini, Mistral AI) classified 20 indigenous South African plants.
+    """)
+    
+    # Load actual data
+    ratings, plant_names = prepare_actual_classification_data()
+    model_names = ["ChatGPT", "Gemini", "Mistral AI"]
+    
+    # Display data table
+    st.subheader("Research Data (Table 1)")
+    display_data = []
+    for i, plant in enumerate(plant_names):
+        display_data.append({
+            'Plant Name': plant,
+            'ChatGPT': code_to_text(ratings[i][0]),
+            'Gemini': code_to_text(ratings[i][1]),
+            'Mistral AI': code_to_text(ratings[i][2])
+        })
+    
+    df_display = pd.DataFrame(display_data)
+    st.dataframe(df_display, use_container_width=True)
+    
+    # Run analysis automatically on first load
+    if st.button("Run Fleiss Kappa Analysis on Study Data", type="primary"):
+        with st.spinner("Calculating Fleiss' Kappa for research data..."):
+            results = analyzer.calculate_fleiss_kappa(ratings, categories=[-1, 0, 1, 2])
+        
+        if results:
+            # Display results
+            st.header("📈 Research Study Results")
+            
+            # Key metrics in columns
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Fleiss' Kappa", f"{results['kappa']:.3f}")
+            
+            with col2:
+                st.metric("P-value", f"{results['p_value']:.4f}")
+            
+            with col3:
+                st.metric("Observed Agreement", f"{results['observed_agreement']:.3f}")
+            
+            with col4:
+                st.metric("Expected Agreement", f"{results['expected_agreement']:.3f}")
+            
+            # Interpretation
+            st.info(f"**Interpretation**: {results['interpretation']}")
+            
+            # Create visualizations
+            create_visualizations(results, ratings, plant_names, model_names)
+            
+            # Additional statistics
+            st.subheader("📈 Additional Statistics")
+            total_agreements = 0
+            for plant_ratings in ratings:
+                valid_ratings = [r for r in plant_ratings if r != -1]
+                if len(valid_ratings) > 0 and len(set(valid_ratings)) == 1:
+                    total_agreements += 1
+            
+            agreement_rate = total_agreements / len(ratings)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Overall Agreement Rate", f"{agreement_rate:.1%}")
+            with col2:
+                st.metric("Plants with Consensus", f"{total_agreements}/{len(ratings)}")
+            with col3:
+                st.metric("Statistical Significance", 
+                         "Yes" if results['p_value'] < 0.05 else "No")
+            
+            # Research implications
+            st.subheader("🔬 Research Implications")
+            st.markdown("""
+            - **Low Kappa Values** indicate significant disagreement among AI models
+            - **Inconsistent classifications** highlight bias in training data
+            - **No Results patterns** show gaps in indigenous knowledge representation
+            - **Findings support** the need for integrating Indigenous Knowledge Systems into AI training
+            - **Cultural bias** is evident in the misclassification of indigenous plants
+            """)
+
 def main():
     # Main title and description
-    st.title("Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
+    st.title("📊 Fleiss Kappa Analysis: AI Model Agreement on Plant Classification")
     st.markdown("""
     This application analyzes the inter-rater agreement between AI models (ChatGPT, Gemini, Mistral AI) 
     on classifying plants using Fleiss' Kappa statistic.
+    
+    **Start by exploring the original research data, then try with your own data!**
     """)
     
     # Installation notice if libraries are missing
@@ -533,21 +622,34 @@ def main():
     # Initialize analyzer
     analyzer = FleissKappaAnalyzer()
     
-    # Sidebar for navigation
+    # Sidebar for navigation - Set default to Study Data Analysis
     st.sidebar.title("Navigation")
+    
+    # Set default selection to Study Data Analysis
+    if 'app_mode' not in st.session_state:
+        st.session_state.app_mode = "Study Data Analysis"
+    
     app_mode = st.sidebar.selectbox(
         "Choose Analysis Mode",
-        ["User Data Input", "Study Data Analysis", "About"]
+        ["Study Data Analysis", "Insert Your Own Data", "About"],
+        index=0  # Default to Study Data Analysis
     )
     
-    if app_mode == "User Data Input":
+    # Update session state
+    st.session_state.app_mode = app_mode
+    
+    if app_mode == "Study Data Analysis":
+        # Show study data analysis by default
+        run_study_data_analysis(analyzer)
+    
+    elif app_mode == "Insert Your Own Data":
         # User data input and analysis
         ready_for_analysis = user_data_input()
         
         if ready_for_analysis:
             st.header("📈 Analyze Your Data")
             
-            if st.button("Run Fleiss Kappa Analysis with User Data", type="primary"):
+            if st.button("Run Fleiss Kappa Analysis with Your Data", type="primary"):
                 with st.spinner("Calculating Fleiss' Kappa..."):
                     # Prepare user data
                     ratings, plant_names = prepare_user_data()
@@ -558,7 +660,7 @@ def main():
                 
                 if results:
                     # Display results
-                    st.header(" Analysis Results")
+                    st.header("📊 Your Analysis Results")
                     
                     # Key metrics in columns
                     col1, col2, col3, col4 = st.columns(4)
@@ -599,58 +701,6 @@ def main():
                     with col3:
                         st.metric("Statistical Significance", 
                                  "Yes" if results['p_value'] < 0.05 else "No")
-    
-    elif app_mode == "Study Data Analysis":
-        st.header("📋 Study Data Analysis")
-        st.markdown("Analyzing actual data from the research study (Table 1)")
-        
-        # Load actual data
-        ratings, plant_names = prepare_actual_classification_data()
-        model_names = ["ChatGPT", "Gemini", "Mistral AI"]
-        
-        # Display data table
-        st.subheader("Raw Classification Data")
-        display_data = []
-        for i, plant in enumerate(plant_names):
-            display_data.append({
-                'Plant Name': plant,
-                'ChatGPT': code_to_text(ratings[i][0]),
-                'Gemini': code_to_text(ratings[i][1]),
-                'Mistral AI': code_to_text(ratings[i][2])
-            })
-        
-        df_display = pd.DataFrame(display_data)
-        st.dataframe(df_display, use_container_width=True)
-        
-        # Run analysis
-        if st.button("Run Fleiss Kappa Analysis", type="primary"):
-            with st.spinner("Calculating Fleiss' Kappa..."):
-                results = analyzer.calculate_fleiss_kappa(ratings, categories=[-1, 0, 1, 2])
-            
-            if results:
-                # Display results
-                st.header("📈 Analysis Results")
-                
-                # Key metrics in columns
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    st.metric("Fleiss' Kappa", f"{results['kappa']:.3f}")
-                
-                with col2:
-                    st.metric("P-value", f"{results['p_value']:.4f}")
-                
-                with col3:
-                    st.metric("Observed Agreement", f"{results['observed_agreement']:.3f}")
-                
-                with col4:
-                    st.metric("Expected Agreement", f"{results['expected_agreement']:.3f}")
-                
-                # Interpretation
-                st.info(f"**Interpretation**: {results['interpretation']}")
-                
-                # Create visualizations
-                create_visualizations(results, ratings, plant_names, model_names)
     
     else:  # About mode
         st.header("ℹ️ About This Analysis")
