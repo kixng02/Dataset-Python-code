@@ -389,7 +389,7 @@ def get_existing_plant_names():
 
 def user_data_input():
     """Allow users to input their own plant classification data"""
-    st.header("🌿 Insert Your Own Data")
+    st.header("Insert Your Own Data")
     
     st.markdown("""
     **Instructions:**
@@ -703,7 +703,7 @@ def main():
                                  "Yes" if results['p_value'] < 0.05 else "No")
     
     else:  # About mode
-        st.header("ℹ️ About This Analysis")
+        st.header("About This Analysis")
         st.markdown("""
         ### Research Context
         This analysis is part of a study on **"A model for addressing AI algorithms biasness through indigenous South African knowledge systems."**
