@@ -589,7 +589,7 @@ def run_study_data_analysis(analyzer):
                          "Yes" if results['p_value'] < 0.05 else "No")
             
             # Research implications
-            st.subheader("🔬 Research Implications")
+            st.subheader(" Research Implications")
             st.markdown("""
             - **Low Kappa Values** indicate significant disagreement among AI models
             - **Inconsistent classifications** highlight bias in training data
