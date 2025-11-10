@@ -450,7 +450,7 @@ def user_data_input():
     
     # Display current user data
     if st.session_state.user_plants:
-        st.subheader("📋 Your Current Plant Data")
+        st.subheader("Your Current Plant Data")
         display_data = []
         for plant in st.session_state.user_plants:
             display_data.append({
@@ -513,7 +513,7 @@ def prepare_user_data():
 
 def run_study_data_analysis(analyzer):
     """Run and display the study data analysis"""
-    st.header("📋 Research Study Data Analysis")
+    st.header("Research Study Data Analysis")
     st.markdown("""
     This analysis uses the original research data from **Table 1** of the study:
     **"A model for addressing AI algorithms biasness through indigenous South African knowledge systems."**
