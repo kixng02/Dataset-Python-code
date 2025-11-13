@@ -74,8 +74,7 @@ i. Switch to "Insert Your Own Data" in the navigation sidebar
 ii. Add plant classifications
   - Enter unique plant name (required)
   - Select classification from each AI model (Medicinal, Edible, Poisonous, No Results)
-  - Click "Add Plant" to submit (form auto-clears)
-    
+  - Click "Add Plant" to submit (form auto-clears) 
 iii. Minimum requirement: 5 plants for valid Fleiss Kappa analysis
 iv. Run analysis when sufficient data is collected
 
