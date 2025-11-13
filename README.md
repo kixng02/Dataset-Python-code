@@ -94,6 +94,7 @@ Fleiss' Kappa Interpretation
 
 
 **Troubleshooting**
+
 Visualization errors: Ensure matplotlib and seaborn are properly installed
 
 Session issues: Clear browser cache or restart the application
